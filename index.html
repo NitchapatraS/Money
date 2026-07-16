@@ -269,23 +269,53 @@ let creditors = [];
 let currentId = null;
 let editingInstallmentIdx = null;
 
-/* ---------- storage helpers ---------- */
+/* ---------- storage helpers ----------
+   Uses Claude.ai's window.storage when this file is previewed inside
+   Claude.ai (e.g. as an artifact). When the file is hosted on its own
+   (GitHub Pages, any web server, opened as a local file, etc.) that API
+   doesn't exist, so it automatically falls back to the browser's
+   localStorage, which persists normally on a real website. */
+const hasClaudeStorage = (typeof window.storage !== 'undefined')
+  && window.storage && typeof window.storage.get === 'function';
+
+async function storageGet(key){
+  if(hasClaudeStorage){
+    try{ const r = await window.storage.get(key, false); return r ? r.value : null; }
+    catch(e){ return null; }
+  }
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+async function storageSet(key, value){
+  if(hasClaudeStorage){
+    try{ await window.storage.set(key, value, false); return true; }
+    catch(e){ console.error(e); return false; }
+  }
+  try{ localStorage.setItem(key, value); return true; }catch(e){ console.error(e); return false; }
+}
+async function storageDelete(key){
+  if(hasClaudeStorage){
+    try{ await window.storage.delete(key, false); }catch(e){}
+    return;
+  }
+  try{ localStorage.removeItem(key); }catch(e){}
+}
+
 async function loadIndex(){
-  try{ const r = await window.storage.get('creditors-index', false); return JSON.parse(r.value)||[]; }
-  catch(e){ return []; }
+  const v = await storageGet('creditors-index');
+  try{ return v ? (JSON.parse(v)||[]) : []; }catch(e){ return []; }
 }
 async function saveIndex(ids){
-  try{ await window.storage.set('creditors-index', JSON.stringify(ids), false); }catch(e){ console.error(e); }
+  await storageSet('creditors-index', JSON.stringify(ids));
 }
 async function loadCreditor(id){
-  try{ const r = await window.storage.get('creditor:'+id, false); return JSON.parse(r.value); }
-  catch(e){ return null; }
+  const v = await storageGet('creditor:'+id);
+  try{ return v ? JSON.parse(v) : null; }catch(e){ return null; }
 }
 async function saveCreditor(c){
-  try{ await window.storage.set('creditor:'+c.id, JSON.stringify(c), false); }catch(e){ console.error(e); }
+  await storageSet('creditor:'+c.id, JSON.stringify(c));
 }
 async function deleteCreditorStore(id){
-  try{ await window.storage.delete('creditor:'+id, false); }catch(e){}
+  await storageDelete('creditor:'+id);
 }
 
 /* ---------- utils ---------- */
