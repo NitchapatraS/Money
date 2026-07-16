@@ -66,16 +66,25 @@
   .ledger-card .bal .amt{ font-size:17px; color:var(--ink); }
   .ledger-card .bal .lbl{ font-size:10px; color:var(--ink-soft); }
 
-  .total-card{
-    background:var(--forest); border-radius:12px; padding:16px 18px; margin-bottom:16px;
-    box-shadow:var(--shadow); display:flex; justify-content:space-between; align-items:flex-end;
-    border-bottom:3px solid var(--gold);
+  .hero-card{
+    background:var(--forest); border-radius:16px; padding:20px 20px 18px; margin-bottom:18px;
+    box-shadow:var(--shadow); border:1px solid rgba(255,255,255,0.06);
   }
-  .total-card .lbl{ color:rgba(255,255,255,0.75); font-size:12px; margin-bottom:4px; }
-  .total-card .amt{ color:#fff; font-family:'Taviraj',serif; font-size:26px; font-weight:600; }
-  .total-card .amt .unit{ font-family:'IBM Plex Sans Thai',sans-serif; font-size:13px; font-weight:400; margin-left:4px; opacity:0.75; }
-  .total-card .count{ color:rgba(255,255,255,0.7); font-size:11.5px; text-align:right; line-height:1.5; }
-  .total-card .count b{ color:#fff; font-family:'IBM Plex Mono',monospace; }
+  .hero-card h1{
+    font-family:'Taviraj',serif; font-weight:600; font-size:21px; color:#fff; margin:0; letter-spacing:0.3px;
+  }
+  .hero-sub{ color:rgba(255,255,255,0.65); font-size:12px; margin-top:4px; }
+  .hero-stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:16px; }
+  .stat{
+    background:rgba(255,255,255,0.08); border-radius:10px; padding:11px 10px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .stat-label{ color:rgba(255,255,255,0.7); font-size:11px; margin-bottom:5px; }
+  .stat-value{
+    color:#fff; font-family:'Taviraj',serif; font-size:17px; font-weight:600;
+    font-variant-numeric:tabular-nums; overflow-wrap:anywhere;
+  }
+  .stat-value span{ font-family:'IBM Plex Mono','Taviraj',monospace; }
 
   .card-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
   .card-header .ct-title{ font-family:'Taviraj',serif; font-size:15px; color:var(--forest); font-weight:600; }
@@ -197,16 +206,25 @@
 
   <!-- HOME SCREEN -->
   <div id="home-screen">
-    <div class="topbar">
-      <div class="row">
-        <div>
-          <h1>สมุดบัญชีเจ้าหนี้</h1>
-          <div class="sub">คีย์ยอดหนี้และรายการชำระหนี้</div>
+    <div class="content">
+      <div class="hero-card" id="home-hero">
+        <h1>สมุดบัญชีเจ้าหนี้</h1>
+        <div class="hero-sub">บันทึกยอดเงินกู้ การชำระ และประวัติทั้งหมด</div>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-label">ยอดกู้รวม</div>
+            <div class="stat-value">฿<span id="stat-total">0</span></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">ชำระแล้ว</div>
+            <div class="stat-value">฿<span id="stat-paid">0</span></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">ค้างชำระ</div>
+            <div class="stat-value">฿<span id="stat-remaining">0</span></div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="content">
-      <div class="total-card" id="home-total"></div>
       <h2 class="section-title">รายชื่อเจ้าหนี้</h2>
       <div id="creditor-list"></div>
     </div>
@@ -351,21 +369,15 @@ function currentBalance(c){
 }
 
 /* ---------- render: home ---------- */
+function fmtWhole(n){ return Math.round(Number(n)||0).toLocaleString('en-US'); }
+
 async function renderHome(){
-  const totalCard = document.getElementById('home-total');
-  const totalDebt = creditors.reduce((sum,c)=> sum + currentBalance(c), 0);
-  if(!creditors.length){
-    totalCard.classList.add('hidden');
-  } else {
-    totalCard.classList.remove('hidden');
-    totalCard.innerHTML = `
-      <div>
-        <div class="lbl">ยอดหนี้รวมทุกเจ้าหนี้ (เงินต้นคงเหลือ)</div>
-        <div class="amt">${fmt(totalDebt)}<span class="unit">บาท</span></div>
-      </div>
-      <div class="count">เจ้าหนี้ <b>${creditors.length}</b> ราย</div>
-    `;
-  }
+  const totalLoan = creditors.reduce((sum,c)=> sum + (Number(c.principal)||0), 0);
+  const totalRemaining = creditors.reduce((sum,c)=> sum + currentBalance(c), 0);
+  const totalPaid = totalLoan - totalRemaining;
+  document.getElementById('stat-total').textContent = fmtWhole(totalLoan);
+  document.getElementById('stat-paid').textContent = fmtWhole(totalPaid);
+  document.getElementById('stat-remaining').textContent = fmtWhole(totalRemaining);
 
   const list = document.getElementById('creditor-list');
   if(!creditors.length){
