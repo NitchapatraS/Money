@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>สมุดบัญชีเจ้าหนี้</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Taviraj:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EA;
+    --paper-line:#CFE0D3;
+    --card:#FFFFFF;
+    --ink:#232921;
+    --ink-soft:#6B6F62;
+    --forest:#1B4332;
+    --forest-mid:#2D6A4F;
+    --forest-pale:#E7F0EA;
+    --gold:#A9803F;
+    --red:#9C3B3B;
+    --border:#DDD6C4;
+    --shadow: 0 2px 10px rgba(27,67,50,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'IBM Plex Sans Thai',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .num{ font-family:'IBM Plex Mono','IBM Plex Sans Thai',monospace; font-weight:600; letter-spacing:-0.2px; }
+  .app{ max-width:520px; margin:0 auto; min-height:100vh; background:var(--paper); position:relative; padding-bottom:100px;}
+
+  /* Top bar */
+  .topbar{
+    background:var(--forest); color:#fff; padding:18px 18px 22px;
+    position:sticky; top:0; z-index:20;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  }
+  .topbar .row{ display:flex; align-items:center; gap:10px; }
+  .topbar h1{
+    font-family:'Taviraj',serif; font-weight:600; font-size:22px; margin:0; letter-spacing:0.3px;
+  }
+  .topbar .sub{ font-size:12px; opacity:0.75; margin-top:2px; }
+  .backbtn{
+    background:rgba(255,255,255,0.12); border:none; color:#fff; width:34px; height:34px;
+    border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .backbtn:active{ background:rgba(255,255,255,0.25); }
+
+  /* Home list */
+  .content{ padding:16px; }
+  .ledger-card{
+    background:var(--card); border-radius:10px; box-shadow:var(--shadow);
+    border-left:4px solid var(--forest-mid); padding:14px 16px; margin-bottom:12px;
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .ledger-card:active{ transform:scale(0.98); }
+  .ledger-card .idx{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft);
+    display:block; margin-bottom:2px;
+  }
+  .ledger-card .name{ font-family:'Taviraj',serif; font-size:18px; font-weight:600; color:var(--forest); }
+  .ledger-card .meta{ font-size:12px; color:var(--ink-soft); margin-top:3px; }
+  .ledger-card .bal{ text-align:right; }
+  .ledger-card .bal .amt{ font-size:17px; color:var(--ink); }
+  .ledger-card .bal .lbl{ font-size:10px; color:var(--ink-soft); }
+
+  .total-card{
+    background:var(--forest); border-radius:12px; padding:16px 18px; margin-bottom:16px;
+    box-shadow:var(--shadow); display:flex; justify-content:space-between; align-items:flex-end;
+    border-bottom:3px solid var(--gold);
+  }
+  .total-card .lbl{ color:rgba(255,255,255,0.75); font-size:12px; margin-bottom:4px; }
+  .total-card .amt{ color:#fff; font-family:'Taviraj',serif; font-size:26px; font-weight:600; }
+  .total-card .amt .unit{ font-family:'IBM Plex Sans Thai',sans-serif; font-size:13px; font-weight:400; margin-left:4px; opacity:0.75; }
+  .total-card .count{ color:rgba(255,255,255,0.7); font-size:11.5px; text-align:right; line-height:1.5; }
+  .total-card .count b{ color:#fff; font-family:'IBM Plex Mono',monospace; }
+
+  .card-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .card-header .ct-title{ font-family:'Taviraj',serif; font-size:15px; color:var(--forest); font-weight:600; }
+  .icon-btn{
+    width:32px; height:32px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0; transition:background .15s ease; padding:0;
+  }
+  .icon-btn.trash{ background:#F6E8E8; color:var(--red); }
+  .icon-btn.trash:active{ background:#EDD3D3; }
+  .icon-btn.plus{ background:var(--forest); color:#fff; font-size:19px; font-weight:700; line-height:1; }
+  .icon-btn.plus:active{ background:var(--forest-mid); }
+  .icon-btn svg{ width:16px; height:16px; }
+  .autosave-hint{ font-size:10.5px; color:var(--ink-soft); margin-top:8px; text-align:center; }
+
+  .empty{ text-align:center; padding:60px 20px; color:var(--ink-soft); }
+  .empty .big{ font-family:'Taviraj',serif; font-size:19px; color:var(--forest); margin-bottom:6px; }
+
+  .fab{
+    position:fixed; right:calc(50% - 260px + 20px); bottom:24px; z-index:30;
+    background:var(--forest); color:#fff; border:none; border-radius:30px;
+    padding:14px 22px; font-size:15px; font-weight:600; font-family:'IBM Plex Sans Thai',sans-serif;
+    box-shadow:0 6px 16px rgba(27,67,50,0.35); cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  @media (max-width:560px){ .fab{ right:20px; } }
+  .fab:active{ background:var(--forest-mid); }
+
+  /* Info card in detail */
+  .info-card{
+    background:var(--card); border-radius:10px; box-shadow:var(--shadow); padding:16px; margin-bottom:14px;
+    border-top:3px solid var(--gold);
+  }
+  .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  .field.full{ grid-column:1 / -1; }
+  .field label{ font-size:11px; color:var(--ink-soft); font-weight:600; }
+  .field input{
+    border:1px solid var(--border); border-radius:7px; padding:9px 10px; font-size:14px;
+    font-family:'IBM Plex Sans Thai',sans-serif; background:#FCFBF7; color:var(--ink);
+  }
+  .field input:focus{ outline:none; border-color:var(--forest-mid); background:#fff; }
+  .field input.num-input{ font-family:'IBM Plex Mono',monospace; text-align:right; }
+
+  .info-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+  .btn{
+    border:none; border-radius:7px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:'IBM Plex Sans Thai',sans-serif;
+  }
+  .btn-primary{ background:var(--forest); color:#fff; }
+  .btn-primary:active{ background:var(--forest-mid); }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); border:1px solid var(--border); }
+  .btn-danger{ background:transparent; color:var(--red); border:1px solid #e0c8c8; }
+
+  /* Summary strip */
+  .summary-strip{
+    display:flex; background:var(--forest); border-radius:10px; overflow:hidden; margin-bottom:14px;
+    box-shadow:var(--shadow);
+  }
+  .summary-strip .cell{ flex:1; padding:12px 10px; text-align:center; border-right:1px solid rgba(255,255,255,0.15); }
+  .summary-strip .cell:last-child{ border-right:none; }
+  .summary-strip .cell .v{ color:#fff; font-size:16px; }
+  .summary-strip .cell .l{ color:rgba(255,255,255,0.7); font-size:10.5px; margin-top:3px; }
+
+  /* Ledger table */
+  .ledger-table-wrap{
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        var(--card) 0px, var(--card) 43px,
+        var(--paper-line) 43px, var(--paper-line) 44px
+      );
+    border-radius:10px; box-shadow:var(--shadow); overflow:hidden; border:1px solid var(--border);
+  }
+  .t-head{
+    display:grid; grid-template-columns:0.5fr 1fr 1fr 1fr 1fr 0.4fr;
+    background:var(--forest); color:#fff; font-size:10.5px; font-weight:600;
+  }
+  .t-head div{ padding:9px 4px; text-align:right; }
+  .t-head div:first-child{ text-align:center; }
+  .t-row{
+    display:grid; grid-template-columns:0.5fr 1fr 1fr 1fr 1fr 0.4fr;
+    align-items:center; min-height:44px;
+  }
+  .t-row div{ padding:0 4px; text-align:right; font-size:12.5px; }
+  .t-row .c-no{ text-align:center; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; }
+  .t-row .c-date{ text-align:center; color:var(--ink-soft); font-size:11px; }
+  .t-row .c-del{ text-align:center; color:var(--red); font-size:16px; cursor:pointer; }
+  .neg{ color:var(--red); }
+  .t-empty{ padding:22px 12px; text-align:center; color:var(--ink-soft); font-size:13px; background:var(--card); }
+
+  /* Add installment form */
+  .add-card{
+    background:var(--card); border-radius:10px; box-shadow:var(--shadow); padding:14px 16px; margin-top:14px;
+    border-top:3px solid var(--forest-mid);
+  }
+  .add-card h3{
+    font-family:'Taviraj',serif; font-size:15px; color:var(--forest); margin:0 0 10px; font-weight:600;
+  }
+  .add-row{ display:flex; gap:8px; }
+  .add-row .field{ flex:1; }
+  .add-card .btn{ width:100%; margin-top:10px; padding:11px; font-size:14px; }
+
+  h2.section-title{
+    font-family:'Taviraj',serif; font-size:14px; color:var(--forest); font-weight:600;
+    margin:18px 0 8px 2px; letter-spacing:0.3px;
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    background:var(--forest); color:#fff; padding:10px 18px; border-radius:20px;
+    font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,0.25); z-index:100; opacity:0; transition:opacity .25s;
+    pointer-events:none;
+  }
+  .toast.show{ opacity:1; }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HOME SCREEN -->
+  <div id="home-screen">
+    <div class="topbar">
+      <div class="row">
+        <div>
+          <h1>สมุดบัญชีเจ้าหนี้</h1>
+          <div class="sub">คีย์ยอดหนี้และรายการชำระหนี้</div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="total-card" id="home-total"></div>
+      <h2 class="section-title">รายชื่อเจ้าหนี้</h2>
+      <div id="creditor-list"></div>
+    </div>
+    <button class="fab" onclick="openNewCreditorForm()">＋ เพิ่มเจ้าหนี้</button>
+  </div>
+
+  <!-- DETAIL SCREEN -->
+  <div id="detail-screen" class="hidden">
+    <div class="topbar">
+      <div class="row">
+        <button class="backbtn" onclick="goHome()">←</button>
+        <div>
+          <h1 id="detail-name">-</h1>
+          <div class="sub" id="detail-sub">-</div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+
+      <div class="info-card" id="info-card"></div>
+
+      <h2 class="section-title">สรุปยอดรวม</h2>
+      <div class="summary-strip" id="summary-strip"></div>
+
+      <h2 class="section-title">ตารางผ่อนชำระ</h2>
+      <div class="ledger-table-wrap">
+        <div class="t-head">
+          <div>งวด</div><div>ยอดผ่อน</div><div>ดอกเบี้ย</div><div>เงินต้น</div><div>คงเหลือ</div><div></div>
+        </div>
+        <div id="installment-body"></div>
+      </div>
+
+      <div class="add-card">
+        <div class="card-header">
+          <span class="ct-title" id="add-form-title">＋ บันทึกการชำระงวดใหม่</span>
+          <button class="icon-btn plus" onclick="startNewInstallmentEntry()" title="บันทึกงวดใหม่">＋</button>
+        </div>
+        <div class="add-row">
+          <div class="field">
+            <label>วันที่ชำระ</label>
+            <input type="date" id="inp-date">
+          </div>
+          <div class="field">
+            <label>ยอดผ่อน (บาท)</label>
+            <input type="number" step="0.01" inputmode="decimal" id="inp-payment" class="num-input" placeholder="0.00">
+          </div>
+        </div>
+        <div class="autosave-hint">กรอกครบทั้งสองช่อง ระบบจะบันทึกให้อัตโนมัติ</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let creditors = [];
+let currentId = null;
+let editingInstallmentIdx = null;
+
+/* ---------- storage helpers ---------- */
+async function loadIndex(){
+  try{ const r = await window.storage.get('creditors-index', false); return JSON.parse(r.value)||[]; }
+  catch(e){ return []; }
+}
+async function saveIndex(ids){
+  try{ await window.storage.set('creditors-index', JSON.stringify(ids), false); }catch(e){ console.error(e); }
+}
+async function loadCreditor(id){
+  try{ const r = await window.storage.get('creditor:'+id, false); return JSON.parse(r.value); }
+  catch(e){ return null; }
+}
+async function saveCreditor(c){
+  try{ await window.storage.set('creditor:'+c.id, JSON.stringify(c), false); }catch(e){ console.error(e); }
+}
+async function deleteCreditorStore(id){
+  try{ await window.storage.delete('creditor:'+id, false); }catch(e){}
+}
+
+/* ---------- utils ---------- */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function round2(n){ return Math.round((Number(n)||0)*100)/100; }
+function fmt(n){ return round2(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(iso){ if(!iso) return '-'; const [y,m,d]=iso.split('-'); return d+'/'+m+'/'+y.slice(2); }
+function todayISO(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+/* ---------- schedule calc ---------- */
+function computeSchedule(c){
+  let balance = Number(c.principal)||0;
+  const monthlyRate = (Number(c.rate)||0)/100/12;
+  return (c.installments||[]).map((inst,idx)=>{
+    const before = balance;
+    const interest = round2(before*monthlyRate);
+    const principal = round2(inst.payment - interest);
+    balance = round2(before - principal);
+    return {no:idx+1, date:inst.date, payment:round2(inst.payment), interest, principal, balance};
+  });
+}
+function totals(rows){
+  return rows.reduce((a,r)=>({payment:a.payment+r.payment, interest:a.interest+r.interest, principal:a.principal+r.principal}),
+    {payment:0,interest:0,principal:0});
+}
+function currentBalance(c){
+  const rows = computeSchedule(c);
+  return rows.length ? rows[rows.length-1].balance : (Number(c.principal)||0);
+}
+
+/* ---------- render: home ---------- */
+async function renderHome(){
+  const totalCard = document.getElementById('home-total');
+  const totalDebt = creditors.reduce((sum,c)=> sum + currentBalance(c), 0);
+  if(!creditors.length){
+    totalCard.classList.add('hidden');
+  } else {
+    totalCard.classList.remove('hidden');
+    totalCard.innerHTML = `
+      <div>
+        <div class="lbl">ยอดหนี้รวมทุกเจ้าหนี้ (เงินต้นคงเหลือ)</div>
+        <div class="amt">${fmt(totalDebt)}<span class="unit">บาท</span></div>
+      </div>
+      <div class="count">เจ้าหนี้ <b>${creditors.length}</b> ราย</div>
+    `;
+  }
+
+  const list = document.getElementById('creditor-list');
+  if(!creditors.length){
+    list.innerHTML = `<div class="empty"><div class="big">ยังไม่มีรายการเจ้าหนี้</div>กดปุ่ม “＋ เพิ่มเจ้าหนี้” ด้านล่างเพื่อเริ่มบันทึก</div>`;
+    return;
+  }
+  list.innerHTML = creditors.map((c,i)=>{
+    const bal = currentBalance(c);
+    return `<div class="ledger-card" onclick="openDetail('${c.id}')">
+      <div>
+        <span class="idx">เลขที่ ${String(i+1).padStart(3,'0')}</span>
+        <div class="name">${escapeHtml(c.name||'(ไม่มีชื่อ)')}</div>
+        <div class="meta">ดอกเบี้ย ${c.rate||0}% ต่อปี · อายุ ${escapeHtml(c.term||'-')}</div>
+      </div>
+      <div class="bal">
+        <div class="amt num">${fmt(bal)}</div>
+        <div class="lbl">เงินต้นคงเหลือ</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ---------- render: detail ---------- */
+function renderInfoCard(c){
+  document.getElementById('info-card').innerHTML = `
+    <div class="card-header">
+      <span class="ct-title">ข้อมูลเจ้าหนี้</span>
+      <button class="icon-btn trash" onclick="confirmDeleteCreditor()" title="ลบเจ้าหนี้รายนี้">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <path d="M10 11v6"></path><path d="M14 11v6"></path>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="field-grid">
+      <div class="field full">
+        <label>ชื่อเจ้าหนี้</label>
+        <input type="text" id="f-name" value="${escapeHtml(c.name||'')}" placeholder="ชื่อเจ้าหนี้">
+      </div>
+      <div class="field">
+        <label>อายุ (ระยะเวลา)</label>
+        <input type="text" id="f-term" value="${escapeHtml(c.term||'')}" placeholder="เช่น 12 เดือน">
+      </div>
+      <div class="field">
+        <label>ดอกเบี้ย % ต่อปี</label>
+        <input type="number" step="0.01" inputmode="decimal" id="f-rate" class="num-input" value="${c.rate||0}">
+      </div>
+      <div class="field full">
+        <label>เงินต้น (เริ่มต้น)</label>
+        <input type="number" step="0.01" inputmode="decimal" id="f-principal" class="num-input" value="${c.principal||0}">
+      </div>
+    </div>
+    <div class="autosave-hint">แก้ไขแล้วบันทึกให้อัตโนมัติ</div>`;
+  attachAutosave();
+}
+
+/* ---------- autosave: info card ---------- */
+let autosaveTimer = null;
+function attachAutosave(){
+  ['f-name','f-term','f-rate','f-principal'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', ()=>{
+      clearTimeout(autosaveTimer);
+      autosaveTimer = setTimeout(doAutosaveNow, 600);
+    });
+    el.addEventListener('blur', doAutosaveNow);
+  });
+}
+async function doAutosaveNow(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  const c = creditors.find(x=>x.id===currentId);
+  const nameEl = document.getElementById('f-name');
+  if(!c || !nameEl) return;
+  c.name = nameEl.value.trim();
+  c.term = document.getElementById('f-term').value.trim();
+  c.rate = Number(document.getElementById('f-rate').value)||0;
+  c.principal = Number(document.getElementById('f-principal').value)||0;
+  await saveCreditor(c);
+  document.getElementById('detail-name').textContent = c.name || '(ไม่มีชื่อ)';
+  document.getElementById('detail-sub').textContent = 'บัญชีเจ้าหนี้ · ' + (c.term||'-');
+  refreshScheduleUI(c);
+}
+// flush any pending autosave before the tab/window is hidden or closed
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && autosaveTimer) doAutosaveNow(); });
+window.addEventListener('pagehide', ()=>{ if(autosaveTimer) doAutosaveNow(); });
+
+function renderSummary(rows){
+  const t = totals(rows);
+  document.getElementById('summary-strip').innerHTML = `
+    <div class="cell"><div class="v num">${fmt(t.payment)}</div><div class="l">ยอดผ่อนรวม</div></div>
+    <div class="cell"><div class="v num">${fmt(t.interest)}</div><div class="l">ดอกเบี้ยรวม</div></div>
+    <div class="cell"><div class="v num">${fmt(t.principal)}</div><div class="l">เงินต้นรวม</div></div>
+  `;
+}
+
+function renderInstallments(c, rows){
+  const body = document.getElementById('installment-body');
+  if(!rows.length){
+    body.innerHTML = `<div class="t-empty">ยังไม่มีรายการชำระ — เริ่มบันทึกงวดแรกด้านล่าง</div>`;
+    return;
+  }
+  body.innerHTML = rows.map((r,idx)=>`
+    <div class="t-row" style="grid-template-columns:0.5fr 1fr 1fr 1fr 1fr 0.4fr;">
+      <div class="c-no">${r.no}<br><span class="c-date">${fmtDate(r.date)}</span></div>
+      <div class="num">${fmt(r.payment)}</div>
+      <div class="num">${fmt(r.interest)}</div>
+      <div class="num ${r.principal<0?'neg':''}">${fmt(r.principal)}</div>
+      <div class="num">${fmt(r.balance)}</div>
+      <div class="c-del" onclick="editInstallment(${idx})">✎</div>
+    </div>`).join('');
+}
+
+async function openDetail(id){
+  currentId = id;
+  editingInstallmentIdx = null;
+  const c = creditors.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('detail-name').textContent = c.name || '(ไม่มีชื่อ)';
+  document.getElementById('detail-sub').textContent = 'บัญชีเจ้าหนี้ · ' + (c.term||'-');
+  renderInfoCard(c);
+  refreshScheduleUI(c);
+  resetAddForm();
+  document.getElementById('inp-date').value = todayISO();
+  showScreen('detail');
+}
+
+function refreshScheduleUI(c){
+  const rows = computeSchedule(c);
+  renderSummary(rows);
+  renderInstallments(c, rows);
+}
+
+function resetAddForm(){
+  editingInstallmentIdx = null;
+  document.getElementById('add-form-title').textContent = '＋ บันทึกการชำระงวดใหม่';
+  document.getElementById('inp-payment').value = '';
+}
+
+function startNewInstallmentEntry(){
+  resetAddForm();
+  document.getElementById('inp-date').value = todayISO();
+  document.getElementById('inp-payment').focus();
+}
+
+function editInstallment(idx){
+  const c = creditors.find(x=>x.id===currentId);
+  const inst = c.installments[idx];
+  editingInstallmentIdx = idx;
+  document.getElementById('add-form-title').textContent = '✎ แก้ไขงวดที่ ' + (idx+1);
+  document.getElementById('inp-date').value = inst.date;
+  document.getElementById('inp-payment').value = inst.payment;
+  document.getElementById('inp-payment').scrollIntoView({behavior:'smooth', block:'center'});
+  document.getElementById('inp-payment').focus();
+}
+
+let instAutosaveTimer = null;
+function attachInstallmentAutosave(){
+  ['inp-date','inp-payment'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.addEventListener('input', ()=>{
+      clearTimeout(instAutosaveTimer);
+      instAutosaveTimer = setTimeout(attemptInstallmentAutosave, 600);
+    });
+    el.addEventListener('change', ()=>{
+      clearTimeout(instAutosaveTimer);
+      instAutosaveTimer = setTimeout(attemptInstallmentAutosave, 150);
+    });
+    el.addEventListener('blur', attemptInstallmentAutosave);
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && instAutosaveTimer) attemptInstallmentAutosave(); });
+  window.addEventListener('pagehide', ()=>{ if(instAutosaveTimer) attemptInstallmentAutosave(); });
+}
+
+async function attemptInstallmentAutosave(){
+  clearTimeout(instAutosaveTimer);
+  instAutosaveTimer = null;
+  const c = creditors.find(x=>x.id===currentId);
+  if(!c) return;
+  const date = document.getElementById('inp-date').value;
+  const payment = Number(document.getElementById('inp-payment').value);
+  if(!date || isNaN(payment) || payment<=0) return; // wait until both fields are valid
+
+  c.installments = c.installments||[];
+  if(editingInstallmentIdx!==null){
+    c.installments[editingInstallmentIdx] = {date, payment};
+  } else {
+    c.installments.push({date, payment});
+  }
+  c.installments.sort((a,b)=> a.date.localeCompare(b.date));
+  await saveCreditor(c);
+  refreshScheduleUI(c);
+  const wasNew = editingInstallmentIdx===null;
+  showToast(wasNew ? 'บันทึกงวดใหม่แล้ว' : 'บันทึกการแก้ไขแล้ว');
+  if(wasNew){
+    document.getElementById('inp-payment').value = '';
+  }
+}
+
+async function saveInfoCard(){
+  const c = creditors.find(x=>x.id===currentId);
+  if(!c) return;
+  c.name = document.getElementById('f-name').value.trim();
+  c.term = document.getElementById('f-term').value.trim();
+  c.rate = Number(document.getElementById('f-rate').value)||0;
+  c.principal = Number(document.getElementById('f-principal').value)||0;
+  await saveCreditor(c);
+  document.getElementById('detail-name').textContent = c.name || '(ไม่มีชื่อ)';
+  document.getElementById('detail-sub').textContent = 'บัญชีเจ้าหนี้ · ' + (c.term||'-');
+  refreshScheduleUI(c);
+  showToast('บันทึกข้อมูลเจ้าหนี้แล้ว');
+}
+
+async function confirmDeleteCreditor(){
+  if(!confirm('ต้องการลบเจ้าหนี้รายนี้และประวัติการชำระทั้งหมดใช่หรือไม่?')) return;
+  await deleteCreditorStore(currentId);
+  creditors = creditors.filter(c=>c.id!==currentId);
+  await saveIndex(creditors.map(c=>c.id));
+  showToast('ลบข้อมูลแล้ว');
+  goHome();
+}
+
+/* long-press style: allow delete of an installment via double action on edit button */
+document.addEventListener('DOMContentLoaded', ()=>{
+  attachInstallmentAutosave();
+  let pressTimer=null;
+  document.addEventListener('mousedown', e=>{
+    if(e.target.classList.contains('c-del')){
+      pressTimer = setTimeout(async ()=>{
+        const idx = [...e.target.closest('.ledger-table-wrap').querySelectorAll('.c-del')].indexOf(e.target);
+        if(idx<0) return;
+        if(confirm('ลบรายการงวดนี้ใช่หรือไม่?')){
+          const c = creditors.find(x=>x.id===currentId);
+          c.installments.splice(idx,1);
+          await saveCreditor(c);
+          refreshScheduleUI(c);
+          resetAddForm();
+          showToast('ลบรายการงวดแล้ว');
+        }
+      }, 550);
+    }
+  });
+  document.addEventListener('touchstart', e=>{
+    if(e.target.classList.contains('c-del')){
+      pressTimer = setTimeout(async ()=>{
+        const idx = [...e.target.closest('.ledger-table-wrap').querySelectorAll('.c-del')].indexOf(e.target);
+        if(idx<0) return;
+        if(confirm('ลบรายการงวดนี้ใช่หรือไม่?')){
+          const c = creditors.find(x=>x.id===currentId);
+          c.installments.splice(idx,1);
+          await saveCreditor(c);
+          refreshScheduleUI(c);
+          resetAddForm();
+          showToast('ลบรายการงวดแล้ว');
+        }
+      }, 550);
+    }
+  }, {passive:true});
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>{
+    document.addEventListener(ev, ()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } });
+  });
+});
+
+/* ---------- navigation ---------- */
+function showScreen(name){
+  document.getElementById('home-screen').classList.toggle('hidden', name!=='home');
+  document.getElementById('detail-screen').classList.toggle('hidden', name!=='detail');
+}
+async function goHome(){
+  if(autosaveTimer) await doAutosaveNow();
+  if(instAutosaveTimer) await attemptInstallmentAutosave();
+  currentId=null; renderHome(); showScreen('home');
+}
+
+async function openNewCreditorForm(){
+  const c = { id: uid(), name:'', term:'', principal:0, rate:0, installments:[] };
+  creditors.unshift(c);
+  await saveCreditor(c);
+  await saveIndex(creditors.map(x=>x.id));
+  openDetail(c.id);
+}
+
+/* ---------- init ---------- */
+async function init(){
+  const ids = await loadIndex();
+  const loaded = await Promise.all(ids.map(id=>loadCreditor(id)));
+  creditors = loaded.filter(Boolean);
+  renderHome();
+  showScreen('home');
+}
+init();
+</script>
+</body>
+</html>
